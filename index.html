@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCUS Compass — AI-Powered CCUS Knowledge Platform</title>
+  <meta name="description" content="Navigate CCUS/CCS regulations, standards, and operations with AI-powered guidance. Alberta, EPA Class VI, ISO standards, well design, monitoring, carbon credits." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; width: 100%; }
+    body { background: #070f0a; color: #c8ddd0; font-family: 'DM Sans', 'Segoe UI', sans-serif; font-size: 14px; -webkit-font-smoothing: antialiased; }
+    textarea, input, button { font-family: inherit; }
+    textarea:focus, input:focus { outline: none; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1a2e1f; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2d6b4a; }
+    @keyframes pulse { 0%,100% { opacity:.3; transform:scale(.8) } 50% { opacity:1; transform:scale(1.1) } }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+    @keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    .slide-up { animation: slideUp 0.4s ease-out; }
+    .hover-lift { transition: all 0.2s; }
+    .hover-lift:hover { transform: translateY(-2px); border-color: #5ba88a !important; }
+    .hover-slide { transition: all 0.2s; }
+    .hover-slide:hover { transform: translateX(4px); border-color: #5ba88a !important; }
+    .nav-btn { transition: all 0.2s; }
+    .nav-btn:hover { background: #12261a !important; color: #7ddfb0 !important; }
+    .chip { transition: all 0.2s; }
+    .chip:hover { border-color: #2d6b4a !important; color: #7ddfb0 !important; }
+    .row-hover { transition: background 0.15s; }
+    .row-hover:hover { background: #0d2018; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback } = React;
+
+    /* ─────────────── EMBEDDED KNOWLEDGE BASE ─────────────── */
+
+    const CCUS_KNOWLEDGE = {
+      alberta: {
+        title: "Alberta / Canada", icon: "🍁",
+        items: [
+          { reg: "AER Directive 065", desc: "Underground injection operations, CO₂ sequestration (Unit 4), induced seismicity (§4.1.8)", url: "https://www.aer.ca/regulating-development/rules-and-directives/directives/directive-065" },
+          { reg: "AER Directive 051", desc: "Injection & disposal wells — Class III for CCS, completion/logging/testing requirements", url: "https://www.aer.ca/regulations-and-compliance-enforcement/rules-and-regulations/directives/directive-051" },
+          { reg: "AER Directive 056", desc: "Energy development applications — well/facility/pipeline licences for CCS projects", url: "https://www.aer.ca/regulations-and-compliance-enforcement/rules-and-regulations/directives/directive-056" },
+          { reg: "Alta Reg 68/2011", desc: "Carbon Sequestration Tenure — evaluation permits (5yr, 73,728 ha), leases (15yr), MMV plans", url: "https://www.canlii.org/en/ab/laws/regu/alta-reg-68-2011/latest/alta-reg-68-2011.html" },
+          { reg: "MMA §15.1", desc: "Crown owns 100% of pore space below surface of all Alberta land" },
+          { reg: "MMA Part 9 §§117-123", desc: "Post-closure liability transfer to Crown, Post-Closure Stewardship Fund" },
+          { reg: "TIER Regulation", desc: "$95/tCO₂e (2025), rising $15/yr to $170 by 2030. Sequestration Credits, CRTs" },
+          { reg: "CSA Z741:12", desc: "Geological storage of CO₂ — bi-national standard, site selection through closure" },
+        ]
+      },
+      epa: {
+        title: "US EPA / Federal", icon: "🇺🇸",
+        items: [
+          { reg: "40 CFR 146 Subpart H", desc: "Class VI wells — §146.81-95: permitting, construction, AoR, monitoring, PISC", url: "https://www.ecfr.gov/current/title-40/chapter-I/subchapter-D/part-146/subpart-H" },
+          { reg: "§146.82", desc: "Two-phase permit: pre-construction + pre-operation data requirements" },
+          { reg: "§146.84", desc: "Area of Review — computational modeling, 5-yr reevaluation, corrective action" },
+          { reg: "§146.85", desc: "Financial responsibility — trust funds, surety bonds, self-insurance ($100M TNW)" },
+          { reg: "§146.86", desc: "Well construction — CO₂-compatible materials, cemented to surface, tubing+packer" },
+          { reg: "§146.88", desc: "Operating: injection pressure ≤90% fracture pressure" },
+          { reg: "§146.90", desc: "Testing & monitoring — quarterly corrosion, annual fall-off, plume tracking" },
+          { reg: "§146.93", desc: "Post-injection site care — minimum 50 years monitoring" },
+          { reg: "Subpart RR", desc: "GHG reporting for geologic sequestration — MRV plans, mass balance (Eq RR-11)", url: "https://www.epa.gov/ghgreporting/subpart-rr-geologic-sequestration-carbon-dioxide" },
+          { reg: "IRC §45Q", desc: "$85/t point-source, $180/t DAC (with PWA). 12-year credit. OBBBA updates" },
+          { reg: "PHMSA 49 CFR 195", desc: "CO₂ pipelines — NPRM Jan 2025 proposes >50% threshold, vapor dispersion" },
+        ]
+      },
+      international: {
+        title: "International Standards", icon: "🌍",
+        items: [
+          { reg: "ISO 27914:2017", desc: "Geological storage — site screening, risk mgmt (ISO 31000), well infrastructure, closure", url: "https://www.iso.org/standard/64148.html" },
+          { reg: "ISO 27913:2024", desc: "Pipeline transportation — CO₂-specific supplements to ISO 13623, impurities ≤5%", url: "https://www.iso.org/standard/84840.html" },
+          { reg: "ISO 27916:2019", desc: "CO₂ storage via EOR — mass balance methodology, Subpart VV / 45Q pathway" },
+          { reg: "DNV-RP-J203", desc: "Decision-gate model for geological storage — screening through post-closure", url: "https://www.dnv.com/energy/standards-guidelines/dnv-rp-j203-geological-storage-of-carbon-dioxide/" },
+          { reg: "EU Directive 2009/31/EC", desc: "CCS Directive — exploration/storage permits, 30-yr post-transfer monitoring fund" },
+          { reg: "London Protocol 2006", desc: "Sub-seabed CO₂ storage permitted; 2009 export amendment not yet in force" },
+          { reg: "IPCC SRCCS Ch.5", desc: "Foundational: 4 trapping mechanisms, >99% retention over 1,000 years, >800m depth" },
+        ]
+      },
+      operations: {
+        title: "Operations & Engineering", icon: "⚙️",
+        items: [
+          { reg: "Well Design", desc: "CO₂-resistant cement, 13Cr min for wet CO₂, 3-string casing, API STD 65-2" },
+          { reg: "CO₂ Spec", desc: "≥95% CO₂, H₂O ≤500ppm, H₂S ≤100ppm, O₂ ≤10ppm, N₂ ≤4%" },
+          { reg: "Corrosion", desc: "Wet CO₂ >10mm/yr — dehydration primary strategy. AMPP SP21632 series" },
+          { reg: "Monitoring", desc: "4D seismic, DAS VSP, InSAR, AZMI, DTS, soil gas, groundwater geochemistry" },
+          { reg: "Risk Assessment", desc: "Quintessa FEP Database (~200 FEPs), Bowtie analysis, NRAP Open-IAM" },
+          { reg: "Induced Seismicity", desc: "Traffic light: Green <M1, Amber M1-2, Red M2-4. Real-time monitoring" },
+          { reg: "SPE SRMS 2025", desc: "CO₂ storage resource classification — Stored, Capacity, Contingent, Prospective" },
+        ]
+      }
+    };
+
+    const STATE_PRIMACY = [
+      { state: "North Dakota", year: 2018, notes: "~8 permits issued; 10yr post-injection liability transfer" },
+      { state: "Wyoming", year: 2020, notes: "9 construction permits; 20yr post-injection transfer" },
+      { state: "Louisiana", year: 2023, notes: "First permit Sep 2025; moratorium Oct 2025" },
+      { state: "West Virginia", year: 2025, notes: "Reviewing initial applications" },
+      { state: "Arizona", year: 2025, notes: "Recently approved" },
+      { state: "Texas", year: 2025, notes: "RRC administers; 18 EPA apps transferred; ~6-mo target" },
+    ];
+
+    const CAPTURE_TECH = [
+      { name: "Amine Scrubbing", trl: 9, energy: "3.5–4.2 GJ/t", cost: "$40–80/t", note: "MEA 30wt%; Boundary Dam, Petra Nova" },
+      { name: "Membrane", trl: "5–7", energy: "~1.5 GJ/t", cost: "$50–70/t", note: "MTR Polaris™; 90% capture bench-scale" },
+      { name: "Solid Sorbent", trl: "4–6", energy: "2.5–3.5 GJ/t", cost: "$50–80/t", note: "Svante; TSA/PSA; >90% capture" },
+      { name: "Oxy-fuel", trl: "6–7", energy: "ASU ~15% output", cost: "$50–100/t", note: "NET Power Allam Cycle demonstration" },
+      { name: "DAC (Solid)", trl: "6–7", energy: "2.5MWh+0.5MWh/t", cost: "$400–1500/t", note: "Climeworks Mammoth 36kt/yr" },
+      { name: "DAC (Liquid)", trl: "6–7", energy: "8.8GJ+360kWh/t", cost: "$400–1000/t", note: "1PointFive STRATOS 500kt/yr" },
+    ];
+
+    const SUGGESTED = [
+      "What are the key differences between Alberta D065 and EPA Class VI?",
+      "Walk me through a Class VI permit application step by step",
+      "What monitoring technologies for a saline aquifer CCS project?",
+      "Explain 45Q tax credit structure after the One Big Beautiful Bill Act",
+      "How does Alberta's liability transfer mechanism work post-closure?",
+      "CO₂ stream purity requirements for pipeline transport?",
+      "Compare induced seismicity protocols across jurisdictions",
+      "Current state of underground hydrogen storage regulations?",
+      "Explain SPE SRMS classification for CO₂ storage resources",
+      "Well design requirements for CO₂ injection in wet service?",
+    ];
+
+    const SYS_PROMPT = `You are **CCUS Compass** — an expert AI advisor for Carbon Capture, Utilization, and Storage. You have deep knowledge of:
+
+**REGULATORY:** Alberta (AER D065 incl §4.1.8 seismicity, D051 Class III wells, D056 applications, Alta Reg 68/2011 tenure, MMA §15.1 pore space, MMA Part 9 liability transfer, TIER $95-170/tCO2e, CSA Z741). US EPA (Class VI 40 CFR 146.81-95, AoR §146.84, ≤90% Pfrac, 50yr PISC, Subpart RR MRV, 45Q $85/$180/t, PHMSA pipelines, state primacy: ND/WY/LA/WV/AZ/TX). International (ISO 27914/27913/27916, DNV-RP-J203, EU CCS Directive, London Protocol, IPCC SRCCS).
+
+**OPERATIONS:** Well design (CO2-resistant cement, 13Cr wet CO2, surface casing through USDW). CO2 specs (≥95%, H2O ≤500ppm). Monitoring (4D seismic, DAS VSP, InSAR, AZMI). Risk (Quintessa FEP, Bowtie, NRAP). Seismicity (TLP: Green<M1, Amber M1-2, Red M2-4). SPE SRMS 2025.
+
+**CAPTURE:** Post-combustion (amine TRL9, membrane TRL5-7, sorbent TRL4-6). Pre-combustion (Selexol/Rectisol). Oxy-fuel (Allam Cycle). DAC (Climeworks solid, 1PointFive liquid). Compression 90-120 kWh/t.
+
+**UHS:** No ISO standard yet. H2 embrittlement needs austenitic SS/Ni alloys. Microbial risks porous media. Salt caverns commercial TRL.
+
+RULES: 1) Adapt depth to user level. 2) Cite specific regulation numbers. 3) Provide specific numbers. 4) Distinguish jurisdictions. 5) If uncertain, say so. 6) Lead with the answer. 7) Use markdown. 8) Compare frameworks side-by-side when relevant.`;
+
+    /* ─────────────── COMPONENTS ─────────────── */
+
+    function TypingDots() {
+      return React.createElement('div', { style: { display:'flex', gap:4, padding:'8px 0', alignItems:'center' }},
+        [0,1,2].map(i => React.createElement('div', { key:i, style: {
+          width:7, height:7, borderRadius:'50%', background:'#5ba88a',
+          animation: `pulse 1.2s ease-in-out ${i*0.2}s infinite`
+        }}))
+      );
+    }
+
+    function Md({ text }) {
+      const lines = (text || '').split('\n');
+      return React.createElement('div', null, lines.map((line, idx) => {
+        let h = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/`(.+?)`/g, '<code style="background:#1a2e1a;padding:2px 6px;border-radius:3px;font-size:0.88em;color:#7ddfb0">$1</code>')
+          .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:#5ba88a;text-decoration:underline">$1</a>');
+        if (line.startsWith('### ')) return React.createElement('h4', { key:idx, style:{color:'#7ddfb0',margin:'14px 0 6px',fontSize:'1em',fontWeight:700}, dangerouslySetInnerHTML:{__html:h.slice(4)} });
+        if (line.startsWith('## ')) return React.createElement('h3', { key:idx, style:{color:'#5ba88a',margin:'16px 0 8px',fontSize:'1.05em',fontWeight:700}, dangerouslySetInnerHTML:{__html:h.slice(3)} });
+        if (line.startsWith('# ')) return React.createElement('h2', { key:idx, style:{color:'#5ba88a',margin:'18px 0 8px',fontSize:'1.1em',fontWeight:700}, dangerouslySetInnerHTML:{__html:h.slice(2)} });
+        if (line.startsWith('- ') || line.startsWith('* ')) return React.createElement('div', { key:idx, style:{paddingLeft:16,margin:'3px 0',position:'relative'} },
+          React.createElement('span', { style:{position:'absolute',left:2,color:'#5ba88a'} }, '•'),
+          React.createElement('span', { dangerouslySetInnerHTML:{__html:h.slice(2)} })
+        );
+        if (/^\d+\.\s/.test(line)) { const m=line.match(/^(\d+\.)\s(.*)/); return React.createElement('div', { key:idx, style:{paddingLeft:20,margin:'3px 0',position:'relative'} },
+          React.createElement('span', { style:{position:'absolute',left:0,color:'#5ba88a',fontWeight:600} }, m[1]),
+          React.createElement('span', { dangerouslySetInnerHTML:{__html:m[2].replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`(.+?)`/g,'<code style="background:#1a2e1a;padding:2px 5px;border-radius:3px;font-size:0.88em;color:#7ddfb0">$1</code>')} })
+        ); }
+        if (line.startsWith('|') && line.endsWith('|')) {
+          const cells = line.split('|').filter(c=>c.trim()).map(c=>c.trim());
+          if (cells.every(c=>/^[-:]+$/.test(c))) return null;
+          return React.createElement('div', { key:idx, style:{display:'flex',borderBottom:'1px solid #1f3a2a',fontSize:'0.88em'} },
+            cells.map((c,ci) => React.createElement('div', { key:ci, style:{flex:1,padding:'5px 8px',color:'#b0c8b8'}, dangerouslySetInnerHTML:{__html:c.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')} }))
+          );
+        }
+        if (line.trim() === '') return React.createElement('div', { key:idx, style:{height:8} });
+        return React.createElement('p', { key:idx, style:{margin:'4px 0',lineHeight:1.6}, dangerouslySetInnerHTML:{__html:h} });
+      }));
+    }
+
+    /* ─────────────── API KEY MODAL ─────────────── */
+
+    function ApiKeyModal({ onSave }) {
+      const [key, setKey] = useState('');
+      const [show, setShow] = useState(false);
+      return React.createElement('div', {
+        style: { position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', display:'flex',
+          alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }
+      },
+        React.createElement('div', {
+          className: 'slide-up',
+          style: { background:'linear-gradient(135deg, #0d1f14, #0b180f)', border:'1px solid #1f4a32',
+            borderRadius:16, padding:'36px 32px', maxWidth:520, width:'100%' }
+        },
+          React.createElement('div', { style:{fontSize:32,marginBottom:12} }, '⬡'),
+          React.createElement('h2', { style:{color:'#e0f0e8',fontSize:'1.3em',fontWeight:700,marginBottom:6} }, 'Welcome to CCUS Compass'),
+          React.createElement('p', { style:{color:'#6a8a78',fontSize:'0.9em',lineHeight:1.6,marginBottom:20} },
+            'This tool uses Claude AI to provide expert CCUS guidance. You need an Anthropic API key to use the AI chat. Your key is stored only in your browser — never sent anywhere except Anthropic\'s API.'
+          ),
+
+          React.createElement('div', { style:{marginBottom:16} },
+            React.createElement('label', { style:{display:'block',color:'#5a7a68',fontSize:'0.78em',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6} }, 'Anthropic API Key'),
+            React.createElement('div', { style:{display:'flex',gap:8} },
+              React.createElement('input', {
+                type: show ? 'text' : 'password',
+                value: key,
+                onChange: e => setKey(e.target.value),
+                placeholder: 'sk-ant-api03-...',
+                style: { flex:1, padding:'12px 14px', borderRadius:8, border:'1px solid #1a2e1f',
+                  background:'#070f0a', color:'#c8ddd0', fontFamily:'JetBrains Mono, monospace', fontSize:'0.85em' },
+                onFocus: e => e.target.style.borderColor='#2d6b4a',
+                onBlur: e => e.target.style.borderColor='#1a2e1f'
+              }),
+              React.createElement('button', {
+                onClick: () => setShow(!show),
+                style: { padding:'0 12px', borderRadius:8, border:'1px solid #1a2e1f', background:'#0a160e',
+                  color:'#5a7a68', cursor:'pointer', fontSize:'0.8em' }
+              }, show ? 'Hide' : 'Show')
+            )
+          ),
+
+          React.createElement('div', { style:{display:'flex',gap:8,marginBottom:20} },
+            React.createElement('button', {
+              onClick: () => { if(key.trim()) { localStorage.setItem('ccus_api_key', key.trim()); onSave(key.trim()); } },
+              disabled: !key.trim().startsWith('sk-'),
+              style: { flex:1, padding:'12px', borderRadius:8, border:'none', cursor: key.trim().startsWith('sk-') ? 'pointer' : 'not-allowed',
+                background: key.trim().startsWith('sk-') ? 'linear-gradient(135deg, #2d6b4a, #3d8b6a)' : '#1a2e1f',
+                color: key.trim().startsWith('sk-') ? '#e0f0e8' : '#3a5a48',
+                fontWeight:700, fontSize:'0.9em', transition:'all 0.2s' }
+            }, '→ Connect & Start'),
+            React.createElement('button', {
+              onClick: () => onSave('BROWSE_ONLY'),
+              style: { padding:'12px 16px', borderRadius:8, border:'1px solid #1a2e1f', background:'transparent',
+                color:'#5a7a68', cursor:'pointer', fontWeight:600, fontSize:'0.85em' }
+            }, 'Browse Only')
+          ),
+
+          React.createElement('div', { style:{background:'#0a160e',borderRadius:10,padding:'14px 16px',border:'1px solid #111e15'} },
+            React.createElement('div', { style:{color:'#5a7a68',fontSize:'0.75em',fontWeight:700,marginBottom:6} }, 'HOW TO GET AN API KEY'),
+            React.createElement('div', { style:{color:'#4a6a58',fontSize:'0.8em',lineHeight:1.7} },
+              '1. Go to ', React.createElement('a', { href:'https://console.anthropic.com/', target:'_blank', rel:'noopener', style:{color:'#5ba88a'} }, 'console.anthropic.com'),
+              React.createElement('br'),
+              '2. Sign up or log in',
+              React.createElement('br'),
+              '3. Go to API Keys → Create Key',
+              React.createElement('br'),
+              '4. Copy and paste it above',
+              React.createElement('br'),
+              React.createElement('span', { style:{color:'#3a5a48',fontStyle:'italic'} }, 'Cost: ~$0.01–0.05 per question (Claude Sonnet)')
+            )
+          )
+        )
+      );
+    }
+
+    /* ─────────────── MAIN APP ─────────────── */
+
+    function App() {
+      const [apiKey, setApiKey] = useState(() => localStorage.getItem('ccus_api_key') || '');
+      const [showKeyModal, setShowKeyModal] = useState(!apiKey);
+      const [view, setView] = useState('dashboard');
+      const [activeTab, setActiveTab] = useState('alberta');
+      const [messages, setMessages] = useState([]);
+      const [input, setInput] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [userLevel, setUserLevel] = useState('engineer');
+      const chatEnd = useRef(null);
+
+      useEffect(() => { chatEnd.current?.scrollIntoView({ behavior:'smooth' }); }, [messages, loading]);
+
+      const send = useCallback(async (text) => {
+        if (!text.trim() || loading) return;
+        if (!apiKey || apiKey === 'BROWSE_ONLY') { setShowKeyModal(true); return; }
+
+        const userMsg = { role:'user', content:text.trim() };
+        const next = [...messages, userMsg];
+        setMessages(next);
+        setInput('');
+        setLoading(true);
+
+        const levelCtx = userLevel==='engineer' ? 'User is a technical engineer. Full technical depth, specific clause numbers, engineering parameters.'
+          : userLevel==='regulator' ? 'User is a regulator. Focus on compliance pathways, enforcement mechanisms.'
+          : 'User is an investor/developer. Focus on economics, risk profiles, timelines, commercial viability.';
+
+        try {
+          const r = await fetch('https://api.anthropic.com/v1/messages', {
+            method:'POST',
+            headers: { 'Content-Type':'application/json', 'x-api-key': apiKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+            body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:4000, system: SYS_PROMPT + '\n\n' + levelCtx, messages: next.slice(-12).map(m=>({role:m.role,content:m.content})) })
+          });
+          if (r.status === 401) {
+            setMessages(p => [...p, { role:'assistant', content:'⚠️ **Invalid API key.** Please check your key and try again. Go to [console.anthropic.com](https://console.anthropic.com/) to verify.' }]);
+            setLoading(false); return;
+          }
+          const d = await r.json();
+          const txt = d.content?.map(b=>b.text||'').join('\n') || 'Error processing request.';
+          setMessages(p => [...p, { role:'assistant', content:txt }]);
+        } catch(e) {
+          setMessages(p => [...p, { role:'assistant', content:'⚠️ **Connection error.** Check your network. If this persists, your API key may be invalid or you may have hit rate limits.' }]);
+        }
+        setLoading(false);
+      }, [messages, loading, apiKey, userLevel]);
+
+      const keyDown = (e) => { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(input); } };
+
+      const goChat = (q) => { setView('chat'); setTimeout(() => send(q), 150); };
+
+      /* ── Key Modal ── */
+      if (showKeyModal) return React.createElement(ApiKeyModal, {
+        onSave: (k) => { setApiKey(k); setShowKeyModal(false); }
+      });
+
+      /* ── RegCard ── */
+      const RegCard = ({ item }) => React.createElement('div', {
+        className: 'hover-lift',
+        style: { background:'linear-gradient(135deg, #0d1f14 0%, #142a1a 100%)', border:'1px solid #1f3a2a',
+          borderRadius:10, padding:'14px 16px', cursor:'pointer' },
+        onClick: () => goChat('Explain ' + item.reg + ' in detail — key provisions, requirements, and practical implications for CCS projects.')
+      },
+        React.createElement('div', { className:'mono', style:{fontWeight:700,color:'#7ddfb0',fontSize:'0.92em',marginBottom:4} }, item.reg),
+        React.createElement('div', { style:{color:'#8aaa98',fontSize:'0.82em',lineHeight:1.5} }, item.desc),
+        item.url ? React.createElement('div', { style:{marginTop:6} },
+          React.createElement('a', { href:item.url, target:'_blank', rel:'noopener', onClick:e=>e.stopPropagation(),
+            style:{color:'#4a9070',fontSize:'0.75em',textDecoration:'none'} }, '📄 Source ↗')
+        ) : null
+      );
+
+      const navItems = [
+        { id:'dashboard', label:'Dashboard', icon:'◈' },
+        { id:'chat', label:'AI Advisor', icon:'◉' },
+        { id:'capture', label:'Capture Tech', icon:'⬡' },
+        { id:'primacy', label:'State Primacy', icon:'⬢' },
+      ];
+
+      return React.createElement('div', { style:{ minHeight:'100vh', display:'flex', flexDirection:'column' } },
+
+        /* ═══ HEADER ═══ */
+        React.createElement('header', { style:{ background:'linear-gradient(180deg, #0a1a0f, #070f0a)', borderBottom:'1px solid #1a2e1f',
+          padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 } },
+
+          React.createElement('div', { style:{display:'flex',alignItems:'center',gap:12} },
+            React.createElement('div', { style:{ width:36, height:36, borderRadius:8, background:'linear-gradient(135deg, #1a4a2e, #2d6b4a)',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, fontWeight:700, color:'#7ddfb0',
+              boxShadow:'0 0 20px rgba(91,168,138,0.15)' } }, '⬡'),
+            React.createElement('div', null,
+              React.createElement('div', { style:{fontWeight:700,fontSize:'1.1em',color:'#e0f0e8',letterSpacing:'-0.02em'} }, 'CCUS Compass'),
+              React.createElement('div', { style:{fontSize:'0.72em',color:'#5a7a68',letterSpacing:'0.08em',textTransform:'uppercase'} }, 'AI-Powered CCUS Knowledge Platform')
+            )
+          ),
+
+          React.createElement('nav', { style:{display:'flex',gap:4,background:'#0a160e',borderRadius:8,padding:3} },
+            navItems.map(n => React.createElement('button', { key:n.id, className:'nav-btn', onClick:()=>setView(n.id),
+              style:{ padding:'7px 14px', borderRadius:6, border:'none', cursor:'pointer',
+                background: view===n.id ? 'linear-gradient(135deg, #1a4a2e, #2d6b4a)' : 'transparent',
+                color: view===n.id ? '#7ddfb0' : '#5a7a68', fontSize:'0.82em', fontWeight:600 }
+            }, n.icon + ' ' + n.label))
+          ),
+
+          React.createElement('div', { style:{display:'flex',gap:4,alignItems:'center'} },
+            React.createElement('div', { style:{display:'flex',gap:3,background:'#0a160e',borderRadius:8,padding:3} },
+              [{id:'engineer',l:'⚙ Engineer'},{id:'regulator',l:'📋 Regulator'},{id:'investor',l:'📊 Investor'}].map(lv =>
+                React.createElement('button', { key:lv.id, onClick:()=>setUserLevel(lv.id),
+                  style:{ padding:'6px 10px', borderRadius:5, border:'none', cursor:'pointer',
+                    background: userLevel===lv.id ? '#1a3a2a' : 'transparent',
+                    color: userLevel===lv.id ? '#7ddfb0' : '#4a6a58', fontSize:'0.75em', fontWeight:600 }
+                }, lv.l)
+              )
+            ),
+            React.createElement('button', {
+              onClick: () => setShowKeyModal(true),
+              style: { marginLeft:8, padding:'6px 10px', borderRadius:5, border:'1px solid #1a2e1f',
+                background:'transparent', color: apiKey && apiKey!=='BROWSE_ONLY' ? '#2d6b4a' : '#c0a060',
+                cursor:'pointer', fontSize:'0.72em', fontWeight:600 }
+            }, apiKey && apiKey!=='BROWSE_ONLY' ? '🔑 Connected' : '🔑 Add Key')
+          )
+        ),
+
+        /* ═══ MAIN ═══ */
+        React.createElement('main', { style:{flex:1,overflow:'auto'} },
+
+          /* ─── DASHBOARD ─── */
+          view === 'dashboard' && React.createElement('div', { style:{maxWidth:1200,margin:'0 auto',padding:'24px 20px'} },
+
+            /* Hero */
+            React.createElement('div', { className:'slide-up', style:{ background:'linear-gradient(135deg, #0d2818, #1a4a2e 50%, #0d2818)',
+              borderRadius:14, padding:'32px 28px', marginBottom:28, border:'1px solid #1f4a32', position:'relative', overflow:'hidden' } },
+              React.createElement('div', { style:{position:'absolute',top:0,right:0,width:300,height:200,background:'radial-gradient(ellipse, rgba(91,168,138,0.08), transparent 70%)'} }),
+              React.createElement('h1', { style:{color:'#e0f0e8',fontSize:'1.5em',fontWeight:700,margin:0,letterSpacing:'-0.03em'} },
+                'Complete CCUS Regulatory & Technical Intelligence'),
+              React.createElement('p', { style:{color:'#7a9a88',margin:'10px 0 18px',maxWidth:700,lineHeight:1.6,fontSize:'0.92em'} },
+                'Navigate Alberta/Canada, US EPA, and international CCS frameworks. AI-powered guidance for regulations, operations, well design, monitoring, and carbon credit compliance.'),
+              React.createElement('button', { onClick:()=>setView('chat'), className:'hover-lift',
+                style:{ padding:'10px 22px', borderRadius:8, border:'none', cursor:'pointer',
+                  background:'linear-gradient(135deg, #2d6b4a, #3d8b6a)', color:'#e0f0e8',
+                  fontWeight:700, fontSize:'0.9em', boxShadow:'0 4px 16px rgba(45,107,74,0.3)' }
+              }, '◉ Start AI Consultation →')
+            ),
+
+            /* Tabs */
+            React.createElement('div', { style:{display:'flex',gap:4,marginBottom:16,background:'#0a160e',borderRadius:8,padding:3,width:'fit-content'} },
+              Object.entries(CCUS_KNOWLEDGE).map(([k,v]) =>
+                React.createElement('button', { key:k, className:'nav-btn', onClick:()=>setActiveTab(k),
+                  style:{ padding:'8px 16px', borderRadius:6, border:'none', cursor:'pointer',
+                    background: activeTab===k ? 'linear-gradient(135deg, #1a4a2e, #2d6b4a)' : 'transparent',
+                    color: activeTab===k ? '#7ddfb0' : '#5a7a68', fontSize:'0.85em', fontWeight:600 }
+                }, v.icon + ' ' + v.title)
+              )
+            ),
+
+            /* Grid */
+            React.createElement('div', { style:{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))',gap:12,marginBottom:32} },
+              CCUS_KNOWLEDGE[activeTab].items.map((item,i) => React.createElement(RegCard, { key:i, item }))
+            ),
+
+            /* Stats */
+            React.createElement('div', { style:{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))',gap:12,marginBottom:32} },
+              [
+                { label:'45Q Geologic Storage', value:'$85/t', sub:'Point-source (with PWA)' },
+                { label:'45Q DAC Storage', value:'$180/t', sub:'Direct Air Capture' },
+                { label:'Alberta TIER 2025', value:'$95/tCO₂e', sub:'Rising $15/yr to $170' },
+                { label:'EPA PISC Minimum', value:'50 years', sub:'Post-injection monitoring' },
+                { label:'Max Injection P', value:'90% Pfrac', sub:'EPA Class VI §146.88' },
+                { label:'State Primacy', value:'6 states', sub:'ND, WY, LA, WV, AZ, TX' },
+              ].map((s,i) => React.createElement('div', { key:i, style:{background:'#0b180f',border:'1px solid #162a1e',borderRadius:10,padding:'16px 14px'} },
+                React.createElement('div', { style:{color:'#5a7a68',fontSize:'0.72em',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6} }, s.label),
+                React.createElement('div', { className:'mono', style:{color:'#7ddfb0',fontSize:'1.4em',fontWeight:700} }, s.value),
+                React.createElement('div', { style:{color:'#4a6a58',fontSize:'0.78em',marginTop:2} }, s.sub)
+              ))
+            ),
+
+            /* Suggested */
+            React.createElement('div', { style:{marginBottom:24} },
+              React.createElement('h3', { style:{color:'#5a7a68',fontSize:'0.78em',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12} }, 'Ask the AI Advisor'),
+              React.createElement('div', { style:{display:'flex',flexWrap:'wrap',gap:8} },
+                SUGGESTED.slice(0,6).map((q,i) =>
+                  React.createElement('button', { key:i, className:'chip', onClick:()=>goChat(q),
+                    style:{ padding:'8px 14px', borderRadius:20, border:'1px solid #1a2e1f', background:'#0b180f',
+                      color:'#7a9a88', cursor:'pointer', fontSize:'0.8em', maxWidth:380, textAlign:'left', lineHeight:1.4 }
+                  }, '→ ' + q)
+                )
+              )
+            )
+          ),
+
+          /* ─── CHAT ─── */
+          view === 'chat' && React.createElement('div', { style:{display:'flex',height:'calc(100vh - 64px)'} },
+            React.createElement('div', { style:{flex:1,display:'flex',flexDirection:'column'} },
+
+              /* Messages */
+              React.createElement('div', { style:{flex:1,overflow:'auto',padding:'20px 20px 0'} },
+                React.createElement('div', { style:{maxWidth:800,margin:'0 auto'} },
+                  messages.length === 0 && React.createElement('div', { style:{textAlign:'center',paddingTop:40} },
+                    React.createElement('div', { style:{fontSize:48,marginBottom:16,opacity:0.3} }, '⬡'),
+                    React.createElement('h2', { style:{color:'#5a7a68',fontWeight:600,fontSize:'1.1em',marginBottom:8} }, 'CCUS Compass AI Advisor'),
+                    React.createElement('p', { style:{color:'#3a5a48',fontSize:'0.88em',maxWidth:500,margin:'0 auto 28px',lineHeight:1.6} },
+                      'Ask about regulations, well design, monitoring, carbon credits, capture technologies, or any CCUS topic. Responses adapt to your selected role (' + userLevel + ').'),
+                    React.createElement('div', { style:{display:'flex',flexWrap:'wrap',gap:8,justifyContent:'center',maxWidth:650,margin:'0 auto'} },
+                      SUGGESTED.map((q,i) => React.createElement('button', { key:i, className:'chip', onClick:()=>send(q),
+                        style:{ padding:'8px 14px', borderRadius:20, border:'1px solid #162a1e', background:'#0a160e',
+                          color:'#5a7a68', cursor:'pointer', fontSize:'0.78em', textAlign:'left', lineHeight:1.4 }
+                      }, q))
+                    )
+                  ),
+
+                  messages.map((m,i) => React.createElement('div', { key:i, className:'fade-in',
+                    style:{ display:'flex', gap:12, marginBottom:20, flexDirection: m.role==='user' ? 'row-reverse' : 'row' } },
+                    React.createElement('div', { style:{ width:30, height:30, borderRadius:8, flexShrink:0,
+                      background: m.role==='user' ? '#1a3a2a' : 'linear-gradient(135deg, #1a4a2e, #2d6b4a)',
+                      display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, color:'#7ddfb0', fontWeight:700 }
+                    }, m.role==='user' ? 'Y' : '⬡'),
+                    React.createElement('div', { style:{ maxWidth:'80%', padding:'12px 16px', borderRadius:12,
+                      background: m.role==='user' ? '#122a1a' : '#0b180f',
+                      border: '1px solid ' + (m.role==='user' ? '#1a3a2a' : '#162a1e'),
+                      fontSize:'0.9em', lineHeight:1.65 } },
+                      m.role==='assistant' ? React.createElement(Md, { text:m.content }) : m.content
+                    )
+                  )),
+
+                  loading && React.createElement('div', { style:{display:'flex',gap:12,marginBottom:20} },
+                    React.createElement('div', { style:{ width:30, height:30, borderRadius:8, flexShrink:0,
+                      background:'linear-gradient(135deg, #1a4a2e, #2d6b4a)', display:'flex', alignItems:'center',
+                      justifyContent:'center', fontSize:13, color:'#7ddfb0', fontWeight:700 } }, '⬡'),
+                    React.createElement('div', { style:{padding:'12px 16px',borderRadius:12,background:'#0b180f',border:'1px solid #162a1e'} },
+                      React.createElement(TypingDots)
+                    )
+                  ),
+
+                  React.createElement('div', { ref:chatEnd })
+                )
+              ),
+
+              /* Input */
+              React.createElement('div', { style:{padding:'12px 20px 16px',borderTop:'1px solid #1a2e1f'} },
+                React.createElement('div', { style:{maxWidth:800,margin:'0 auto',display:'flex',gap:8} },
+                  React.createElement('textarea', {
+                    value:input, onChange:e=>setInput(e.target.value), onKeyDown:keyDown,
+                    placeholder: apiKey && apiKey!=='BROWSE_ONLY' ? 'Ask about CCUS regulations, operations, standards...' : '🔑 Add your API key to chat →',
+                    rows:1,
+                    style:{ flex:1, padding:'12px 16px', borderRadius:10, border:'1px solid #1a2e1f',
+                      background:'#0a160e', color:'#c8ddd0', fontSize:'0.9em', resize:'none', lineHeight:1.5 },
+                    onFocus:e=>e.target.style.borderColor='#2d6b4a',
+                    onBlur:e=>e.target.style.borderColor='#1a2e1f'
+                  }),
+                  React.createElement('button', {
+                    onClick:()=>send(input), disabled:loading||!input.trim(),
+                    style:{ padding:'0 18px', borderRadius:10, border:'none', cursor:loading?'wait':'pointer',
+                      background: input.trim() ? 'linear-gradient(135deg, #2d6b4a, #3d8b6a)' : '#0a160e',
+                      color: input.trim() ? '#e0f0e8' : '#3a5a48', fontWeight:700, fontSize:'0.9em' }
+                  }, '↑')
+                ),
+                React.createElement('div', { style:{maxWidth:800,margin:'6px auto 0',color:'#2a4a38',fontSize:'0.7em',textAlign:'center'} },
+                  'Mode: ', React.createElement('strong', {style:{color:'#3a5a48'}}, userLevel),
+                  ' · Powered by Claude · Knowledge through early 2026')
+              )
+            )
+          ),
+
+          /* ─── CAPTURE TECH ─── */
+          view === 'capture' && React.createElement('div', { style:{maxWidth:1000,margin:'0 auto',padding:'24px 20px'} },
+            React.createElement('h2', { style:{color:'#e0f0e8',fontSize:'1.2em',marginBottom:4,fontWeight:700} }, 'CO₂ Capture Technologies'),
+            React.createElement('p', { style:{color:'#5a7a68',fontSize:'0.85em',marginBottom:24} }, 'Click any row to discuss with the AI advisor'),
+            React.createElement('div', { style:{background:'#0b180f',border:'1px solid #162a1e',borderRadius:12,overflow:'hidden'} },
+              React.createElement('div', { style:{ display:'grid', gridTemplateColumns:'1.3fr 0.5fr 0.8fr 0.7fr 1.5fr',
+                padding:'12px 16px', borderBottom:'1px solid #1a2e1f', fontSize:'0.72em', color:'#3a5a48',
+                textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 } },
+                React.createElement('div',null,'Technology'), React.createElement('div',null,'TRL'),
+                React.createElement('div',null,'Energy'), React.createElement('div',null,'Cost'), React.createElement('div',null,'Notes')
+              ),
+              CAPTURE_TECH.map((t,i) => React.createElement('div', { key:i, className:'row-hover',
+                onClick:()=>goChat('Detailed technical comparison of ' + t.name + ' capture — efficiency, costs, deployment status, where it makes economic sense.'),
+                style:{ display:'grid', gridTemplateColumns:'1.3fr 0.5fr 0.8fr 0.7fr 1.5fr', padding:'14px 16px',
+                  borderBottom: i<CAPTURE_TECH.length-1 ? '1px solid #111e15' : 'none', cursor:'pointer', fontSize:'0.85em' } },
+                React.createElement('div', { style:{color:'#7ddfb0',fontWeight:600} }, t.name),
+                React.createElement('div', null, React.createElement('span', { className:'mono', style:{
+                  background: t.trl===9 ? '#1a4a2e' : '#2a3a1a', color: t.trl===9 ? '#7ddfb0' : '#b0c060',
+                  padding:'2px 8px', borderRadius:10, fontSize:'0.85em', fontWeight:600 } }, t.trl)),
+                React.createElement('div', { className:'mono', style:{color:'#8aaa98',fontSize:'0.88em'} }, t.energy),
+                React.createElement('div', { className:'mono', style:{color:'#8aaa98',fontSize:'0.88em'} }, t.cost),
+                React.createElement('div', { style:{color:'#5a7a68',fontSize:'0.88em'} }, t.note)
+              ))
+            ),
+
+            React.createElement('div', { style:{marginTop:28} },
+              React.createElement('h3', { style:{color:'#5a7a68',fontSize:'0.78em',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:12} }, 'Compression & Transport'),
+              React.createElement('div', { style:{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:12} },
+                [
+                  { label:'Supercritical Conditions', value:'>73.8 bar, >31.1°C' },
+                  { label:'Compression Power', value:'90–120 kWh/t CO₂' },
+                  { label:'Pipeline Pressure', value:'8.6–15 MPa' },
+                  { label:'Booster Spacing', value:'100–150 km' },
+                  { label:'H₂O Limit (Pipeline)', value:'≤600 ppm (KM)' },
+                  { label:'Min CO₂ Purity', value:'≥95 vol%' },
+                ].map((s,i) => React.createElement('div', { key:i, style:{background:'#0b180f',border:'1px solid #162a1e',borderRadius:10,padding:'12px 14px'} },
+                  React.createElement('div', { style:{color:'#3a5a48',fontSize:'0.72em',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4} }, s.label),
+                  React.createElement('div', { className:'mono', style:{color:'#7ddfb0',fontWeight:700,fontSize:'1.05em'} }, s.value)
+                ))
+              )
+            )
+          ),
+
+          /* ─── STATE PRIMACY ─── */
+          view === 'primacy' && React.createElement('div', { style:{maxWidth:900,margin:'0 auto',padding:'24px 20px'} },
+            React.createElement('h2', { style:{color:'#e0f0e8',fontSize:'1.2em',marginBottom:4,fontWeight:700} }, 'US Class VI State Primacy'),
+            React.createElement('p', { style:{color:'#5a7a68',fontSize:'0.85em',marginBottom:24} },
+              'States with EPA-delegated authority — typically <1 year vs EPA\'s 2+ year backlog (~175-239 pending)'),
+            React.createElement('div', { style:{display:'grid',gap:12} },
+              STATE_PRIMACY.map((s,i) => React.createElement('div', { key:i, className:'hover-slide',
+                onClick:()=>goChat('Tell me about ' + s.state + '\'s Class VI primacy — when granted, how it differs from EPA, current status and implications.'),
+                style:{ background:'linear-gradient(135deg, #0d1f14, #0b180f)', border:'1px solid #1a2e1f',
+                  borderRadius:12, padding:'18px 20px', display:'flex', alignItems:'center', gap:20, cursor:'pointer' } },
+                React.createElement('div', { className:'mono', style:{ minWidth:60, height:60, borderRadius:10,
+                  background:'linear-gradient(135deg, #1a4a2e, #2d6b4a)', display:'flex', alignItems:'center',
+                  justifyContent:'center', fontWeight:700, color:'#7ddfb0', fontSize:'1.1em' } }, s.year),
+                React.createElement('div', { style:{flex:1} },
+                  React.createElement('div', { style:{fontWeight:700,color:'#e0f0e8',fontSize:'1em'} }, s.state),
+                  React.createElement('div', { style:{color:'#6a8a78',fontSize:'0.85em',marginTop:2} }, s.notes)
+                ),
+                React.createElement('div', { style:{color:'#2d6b4a',fontSize:'1.2em'} }, '→')
+              ))
+            ),
+
+            React.createElement('div', { style:{marginTop:28,padding:'16px 20px',background:'#0b180f',border:'1px solid #1f2e1f',borderRadius:12} },
+              React.createElement('div', { style:{color:'#5a7a68',fontSize:'0.78em',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8} }, 'Key Comparison'),
+              React.createElement('div', { style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,fontSize:'0.88em'} },
+                React.createElement('div', null,
+                  React.createElement('div', { style:{color:'#7ddfb0',fontWeight:700,marginBottom:4} }, 'State Primacy'),
+                  React.createElement('div', { style:{color:'#6a8a78',lineHeight:1.6} }, '~6-12 month review • Local expertise • Streamlined process • Must meet federal standards')
+                ),
+                React.createElement('div', null,
+                  React.createElement('div', { style:{color:'#c0a060',fontWeight:700,marginBottom:4} }, 'EPA Direct'),
+                  React.createElement('div', { style:{color:'#6a8a78',lineHeight:1.6} }, '2+ year backlog • 175-239 pending • Consistent national standard • Resource-constrained')
+                )
+              )
+            )
+          )
+        ),
+
+        /* ═══ FOOTER ═══ */
+        React.createElement('footer', { style:{ borderTop:'1px solid #111e15', padding:'10px 20px',
+          display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:'0.7em', color:'#2a4a38', flexWrap:'wrap', gap:8 } },
+          React.createElement('span', null, 'CCUS Compass · Knowledge through early 2026 · Not legal/regulatory advice'),
+          React.createElement('span', null, 'Built for the global CCUS community · ', React.createElement('a', {
+            href:'https://github.com', target:'_blank', rel:'noopener', style:{color:'#3a5a48'} }, 'Open Source'))
+        )
+      );
+    }
+
+    ReactDOM.render(React.createElement(App), document.getElementById('root'));
+  </script>
+</body>
+</html>
