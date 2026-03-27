@@ -293,14 +293,19 @@ RULES: 1) Adapt depth to user level. 2) Cite specific regulation numbers. 3) Pro
           const r = await fetch('https://api.anthropic.com/v1/messages', {
             method:'POST',
             headers: { 'Content-Type':'application/json', 'x-api-key': apiKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-            body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:4000, system: SYS_PROMPT + '\n\n' + levelCtx, messages: next.slice(-12).map(m=>({role:m.role,content:m.content})) })
+            body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:4000, system: SYS_PROMPT + '\n\n' + levelCtx, messages: next.slice(-12).map(m=>({role:m.role,content:m.content})) })
           });
           if (r.status === 401) {
             setMessages(p => [...p, { role:'assistant', content:'⚠️ **Invalid API key.** Please check your key and try again. Go to [console.anthropic.com](https://console.anthropic.com/) to verify.' }]);
             setLoading(false); return;
           }
           const d = await r.json();
-          const txt = d.content?.map(b=>b.text||'').join('\n') || 'Error processing request.';
+          if (!r.ok) {
+            const errMsg = d?.error?.message || `API error (${r.status})`;
+            setMessages(p => [...p, { role:'assistant', content:`⚠️ **API Error:** ${errMsg}` }]);
+            setLoading(false); return;
+          }
+          const txt = d.content?.map(b=>b.text||'').join('\n') || 'No response received.';
           setMessages(p => [...p, { role:'assistant', content:txt }]);
         } catch(e) {
           setMessages(p => [...p, { role:'assistant', content:'⚠️ **Connection error.** Check your network. If this persists, your API key may be invalid or you may have hit rate limits.' }]);
